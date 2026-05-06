@@ -1,31 +1,39 @@
-name: Export Docker Image and Release
+name: Export Docker Image (Legacy tar)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., 1.2.0)'
-        required: true
-        default: '1.2.0'
+        description: 'Release version (e.g., 1.2.0) – leave empty to skip release'
+        required: false
+        default: ''
 
 jobs:
   export:
     runs-on: ubuntu-latest
     steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and export Docker image (linux/amd64 only)
+        uses: docker/build-push-action@v5
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          context: .
+          platforms: linux/amd64
+          # Output the image directly as a legacy Docker tar file
+          outputs: type=docker,dest=deepseek-free-api.tar
 
-      - name: Pull image from GHCR
-        run: docker pull ghcr.io/pouyafakhari/deepseek-free-api:latest
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-free-api-docker-legacy
+          path: deepseek-free-api.tar
 
-      - name: Save Docker image to tar
-        run: docker save -o deepseek-free-api.tar ghcr.io/pouyafakhari/deepseek-free-api:latest
-
-      - name: Create Release and Upload Asset
+      - name: Create Release (optional – triggered only if version is provided)
+        if: ${{ github.event.inputs.version != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.event.inputs.version }}
