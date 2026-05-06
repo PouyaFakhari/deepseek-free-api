@@ -1,0 +1,27 @@
+name: Export Docker Image to tar
+
+on:
+  workflow_dispatch:   # manual trigger
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull image from GHCR
+        run: docker pull ghcr.io/pouyafakhari/deepseek-free-api:latest
+
+      - name: Save Docker image to tar
+        run: docker save -o deepseek-free-api.tar ghcr.io/pouyafakhari/deepseek-free-api:latest
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-free-api-docker
+          path: deepseek-free-api.tar
