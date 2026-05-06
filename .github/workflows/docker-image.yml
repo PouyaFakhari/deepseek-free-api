@@ -1,23 +1,24 @@
-name: Build and Package DeepSeek-Free-API
+name: Build and Release DeepSeek-Free-API
 
 on:
-  workflow_dispatch:   # allows manual trigger from Actions tab
+  workflow_dispatch:   # manual trigger
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.0)'
+        required: true
+        default: '1.2.0'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20]   # LTS, compatible with the project
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20
 
       - name: Install dependencies
         run: npm install
@@ -25,15 +26,22 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Prepare artifact directory
+      - name: Prepare artifact
         run: |
           mkdir artifact
-          cp -r dist node_modules package.json .env.example README_EN.md public configs src artifact/ 2>/dev/null || true
-          # Create a placeholder .env so the user only needs to add their token
+          cp -r dist node_modules package.json .env.example public configs src artifact/ 2>/dev/null || true
           echo 'DEEP_SEEK_CHAT_AUTHORIZATION=YOUR_TOKEN_HERE' > artifact/.env
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Archive artifact
+        run: |
+          cd artifact
+          zip -r ../deepseek-free-api-windows.zip .
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: deepseek-free-api-windows-ready
-          path: artifact/
+          tag_name: v${{ github.event.inputs.version }}
+          name: v${{ github.event.inputs.version }}
+          files: deepseek-free-api-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
