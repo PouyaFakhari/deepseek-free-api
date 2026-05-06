@@ -1,13 +1,23 @@
-  build-native:
+name: Build and Package DeepSeek-Free-API
+
+on:
+  workflow_dispatch:   # allows manual trigger from Actions tab
+
+jobs:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]   # LTS, compatible with the project
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm install
@@ -15,14 +25,15 @@
       - name: Build project
         run: npm run build
 
-      - name: Prepare artifact
+      - name: Prepare artifact directory
         run: |
           mkdir artifact
-          cp -r dist node_modules package.json .env.example public configs src artifact/ 2>/dev/null || true
+          cp -r dist node_modules package.json .env.example README_EN.md public configs src artifact/ 2>/dev/null || true
+          # Create a placeholder .env so the user only needs to add their token
           echo 'DEEP_SEEK_CHAT_AUTHORIZATION=YOUR_TOKEN_HERE' > artifact/.env
 
-      - name: Upload native build
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: deepseek-free-api-native
+          name: deepseek-free-api-windows-ready
           path: artifact/
