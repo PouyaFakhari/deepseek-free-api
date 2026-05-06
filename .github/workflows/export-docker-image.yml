@@ -1,7 +1,12 @@
-name: Export Docker Image to tar
+name: Export Docker Image and Release
 
 on:
-  workflow_dispatch:   # manual trigger
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.2.0)'
+        required: true
+        default: '1.2.0'
 
 jobs:
   export:
@@ -20,8 +25,11 @@ jobs:
       - name: Save Docker image to tar
         run: docker save -o deepseek-free-api.tar ghcr.io/pouyafakhari/deepseek-free-api:latest
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: deepseek-free-api-docker
-          path: deepseek-free-api.tar
+          tag_name: v${{ github.event.inputs.version }}
+          name: Docker Export v${{ github.event.inputs.version }}
+          files: deepseek-free-api.tar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
